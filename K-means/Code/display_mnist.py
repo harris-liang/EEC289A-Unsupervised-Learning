@@ -1,3 +1,5 @@
+# https://www.kaggle.com/code/hojjatk/read-mnist-dataset/notebook
+
 from mnist_data_loader import MnistDataloader
 from os.path  import join
 import random
@@ -6,7 +8,7 @@ import matplotlib.pyplot as plt
 #
 # Set file paths based on added MNIST Datasets
 #
-input_path = 'K-means/Code/MNIST_ORG/'
+input_path = 'MNIST_ORG/'
 training_images_filepath = join(input_path, 'train-images.idx3-ubyte')
 training_labels_filepath = join(input_path, 'train-labels.idx1-ubyte')
 test_images_filepath = join(input_path, 't10k-images.idx3-ubyte')
@@ -28,7 +30,8 @@ def show_images(images, title_texts):
         if (title_text != ''):
             plt.title(title_text, fontsize = 15);        
         index += 1
-    plt.show()
+    plt.savefig('../Result/mnist_images.png')
+    plt.close()
 
 #
 # Load MINST dataset

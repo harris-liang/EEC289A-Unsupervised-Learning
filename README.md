@@ -2,7 +2,7 @@
 
 ## To Run Code
 
-Navigate to folder: `cd <your-path>/EEC289A-Unsupervised-Learning`.
+Navigate to folder: `cd <your-path>/EEC289A-Unsupervised-Learning/<the project>/Code`.
 
 Create virtual environment: `python3 -m venv venv`.
 
