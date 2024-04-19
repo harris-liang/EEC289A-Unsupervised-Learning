@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 #
 # Set file paths based on added MNIST Datasets
 #
-input_path = 'MNIST_ORG/'
+input_path = 'K-means/Code/MNIST_ORG/'
 training_images_filepath = join(input_path, 'train-images.idx3-ubyte')
 training_labels_filepath = join(input_path, 'train-labels.idx1-ubyte')
 test_images_filepath = join(input_path, 't10k-images.idx3-ubyte')
@@ -20,17 +20,17 @@ test_labels_filepath = join(input_path, 't10k-labels.idx1-ubyte')
 def show_images(images, title_texts):
     cols = 5
     rows = int(len(images)/cols) + 1
-    plt.figure(figsize=(30,20))
-    index = 1    
-    for x in zip(images, title_texts):        
-        image = x[0]        
+    plt.figure(figsize=(25,20))
+    index = 1
+    for x in zip(images, title_texts):
+        image = x[0]
         title_text = x[1]
-        plt.subplot(rows, cols, index)        
+        plt.subplot(rows, cols, index)
         plt.imshow(image, cmap=plt.cm.gray)
         if (title_text != ''):
-            plt.title(title_text, fontsize = 15);        
+            plt.title(title_text, fontsize = 15)
         index += 1
-    plt.savefig('../Result/mnist_images.png')
+    plt.savefig('K-means/Result/mnist_images.png', dpi=300)
     plt.close()
 
 #
