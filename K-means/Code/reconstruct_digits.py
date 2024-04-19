@@ -95,8 +95,8 @@ if __name__ == "__main__":
 
 
     # Example of reconstructing a digit
-    digit_idx = np.random.randint(0, len(x_train))
-    digit_image = x_train[digit_idx]
+    digit_idx = np.random.randint(0, len(x_test))
+    digit_image = x_test[digit_idx]
 
 
 
@@ -135,4 +135,4 @@ if __name__ == "__main__":
             axs[1, i_fig - 9].axis('off')
 
     # plt.tight_layout()
-    plt.savefig(f"K-means/Result/Digits/reconstruct-digit.png", dpi=300)
+    plt.savefig(f"K-means/Result/Digits/reconstruct-test-digit.png", dpi=300)
