@@ -463,3 +463,7 @@ cython_debug/
 
 # Keep the results in Result folder
 !K-means/Result/
+
+# Do not include model and data files
+*.npy
+*.joblib
