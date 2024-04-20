@@ -297,7 +297,8 @@ With the results above, we can observe that:
 \subsection{What are the centroids}
 
 In addition to the clustering performance, we also want to understand the meaning of the clusters or centroids. 
-Here we show the first 100 centroids when using $K = 100$ and $K = 10000$ in Figure~\ref{fig:centroids-100-10000}.
+Here we show the first 100 centroids when using $K = 100$ and $K = 1000$ in Figure~\ref{fig:centroids-100-10000}.
+
 
 \begin{figure}[htbp!]
     \centering
@@ -311,12 +312,12 @@ Here we show the first 100 centroids when using $K = 100$ and $K = 10000$ in Fig
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../Result/Centroids/10000-clusters-centroids.png}
-        \caption{$K = 10000$}
-        \label{fig:10000-centroids}
+        \includegraphics[width=\textwidth]{../Result/Centroids/Screenshot 2024-04-19 231953.png}
+        \caption{$K = 1000$}
+        \label{fig:1000-centroids}
     \end{subfigure}
-    \caption{Visual representation of cluster centroids for $K = 100$ and $K = 10000$}
-    \label{fig:centroids-100-10000}
+    \caption{Visual representation of cluster centroids for $K = 100$ and $K = 1000$}
+    \label{fig:centroids-100-1000}
 \end{figure}
 
 \textcolor{red}{Question 4:} From the results, we can see that the centroids of these clusters are actually the patterns of the handwritten digits. Specifically, they are the edges, corners, and other features of the digits.
@@ -343,6 +344,17 @@ When $K = 10000$, the reconstructed digits are very similar to the original digi
 \textcolor{red}{Question 5:} This indicates that the digits are constructed from the detailed features of itself, such as the edges, corners, and other features.
 One digit is just a linear combination of these features / centroids/ clusters, and the more clusters we have, the more accurate the reconstruction will be.
 
+\section{conclusion}
+
+In this project, we use K-mean clustering to learn the dictionary (cluster) of the $5\times 5$ patches of the MNIST dataset, and analyze the performance with different K. We can now answer the questions we raised at the beginning:
+
+\begin{itemize}
+    \item When K increases, the learned clusters contain more detailed information on each figure element.
+    \item As shown in Figure ~\ref{fig:patches-100} - Figure ~\ref{fig:patches-10000}, a $5\times 5$ MNIST patch can be well reconstructed by the learned clusters. The reconstruction quality is better when K is large.    
+    \item Ideally, we want the number of clusters to be as large as possible. However, Figure ~\ref{fig:mse-k} implies that the marginal return is lower when $K>2000$, and in practice the training time is huge when K is large. So $K=2000$ would be a reasonable choice.
+    \item The visualization of these clusters are shown in Figure ~\ref{fig:centroids-100-1000}. These clusters are the "elements" of each hand-written digits. They cover some common patterns such as lines, curves, and dots.
+    \item The reconstructed digits are shown in Figure ~\ref{fig:digit-train} - Figure ~\ref{fig:digit-test}. With K=100, the reconstructed digits are already recognizable. The reconstruction quality is better with a larger K.
+\end{itemize}
 
 \newpage
 \section*{Appendix}
