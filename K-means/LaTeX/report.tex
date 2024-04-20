@@ -36,21 +36,22 @@
 In this project, we aim to do K-mean clustering on the patches from MNIST dataset. After the clustering, we observe the results, and try to answer the following interesting questions:
 
 \begin{itemize}
-    \item The number of clusters required to cover the whole patch space
-    \item The interpretable meaning of the clusters
-    \item The connection between the digit and the patches
-    \item ???
+    \item What is the change of the learned clusters when K increases from 100 – 10,000?
+    \item How well one can reconstruct a 5x5 MNIST patch by the learned dictionary (clusters)?
+    \item How many clusters does one need in order to cover the whole patch space?
+    \item What are these clusters and do they have any interpretable meanings?
+    \item How is one digit made from these clusters?
 \end{itemize}
 
 \vspace{2mm}
 
 \section{Methodology}
 
-Firstly, we load the MNIST data and crop the 28 $\times$ 28 hand-written digits to 5$\times$ 5 digits with a moving filter. Therefore, for each hand-write digit, we will get $(28 -5 +1) \times (28 - 5 + 1)$ patches, and then we get rid of all the blank patches. After we get all the useful patches, there are mainly two parts in this project:
+Firstly, we load the MNIST data and crop the 28 $\times$ 28 hand-written digits to 5$\times$ 5 digits with a sliding window. Therefore, for each hand-write digit, we will get $(28 -5 +1) \times (28 - 5 + 1)$ patches, and then we get rid of all the blank patches. After we get all the non-blank patches, there are mainly two parts in this project:
 
 \begin{itemize}
-    \item K-mean clustering to generate the centroids and corresponding subsets
-    \item Reconstruction with the centroids to test the performance
+    \item K-mean clustering with patches to generate the centroids
+    \item Reconstruct digits with the centroids to test the performance
 \end{itemize}
 
 
@@ -70,13 +71,13 @@ We define that:
 
 \vspace{2mm}
 
-The overall algorithm is as shown as below, and we test with K = 100, 200, ..., 900, 1000, 2000, 3000, ..., 10000, and we show the experiment results in section \mathbf{3}.
+The overall algorithm is as shown as below, and we test with K = 100, 200, ..., 900, 1000, 2000, 3000, ..., 10000, and we show the experiment results in Section~\ref{sec:experiment}.
 
 \begin{algorithm}
 \caption{Enhanced K-means Clustering for $5 \times 5$ Patches}
 \begin{algorithmic}[1]
 \Procedure{KMeansPatches}{$Patches, K$}
-    \State $X \gets \text{Reshape each patch } P \text{ in } Patches \text{ to } R^{25}$
+    \State $X \gets \text{Reshape each patch } P \text{ in } Patches \text{ to } R^{25}$ \Comment{No normalization}
     \State Initialize $C$ with K-means++ to choose $K$ centroids from $X$
     \State $C_{\text{old}} \gets \text{Copy of } C$
     \Repeat
@@ -118,7 +119,7 @@ Some notations in this algorithm:
 
 
 \begin{algorithm}
-\caption{Testing K-means Clustering on Handwritten Digit Images}
+\caption{Reconstruct Handwritten Digit Images}
 \begin{algorithmic}[1]
 \Procedure{ReconstructDigit}{$D, K, Model$}
     \State $P \gets \text{empty list to store patches}$
@@ -135,13 +136,18 @@ Some notations in this algorithm:
     \State $X \gets \text{stack of patches in } P$
     \State $Labels \gets Model.\text{predict}(X)$ \Comment{Assign clusters to patches}
     \State $\hat{D} \gets \text{zero matrix of the same size as } D$ \Comment{Initialize reconstructed digit with zeros}
+    \State $Count \gets \text{zero matrix of the same size as } D$ \Comment{Initialize Count matrix with zeros}
+
     \For{$k \gets 0 \text{ to } \text{len}(P)-1$}
         \State $pos \gets Pos[k]$
         \State $cluster \gets Labels[k]$
         \State $centroid \gets Model.cluster\_centers_[cluster].reshape(5, 5)$
-        \State $\hat{D}[pos[0]:pos[0]+5, pos[1]:pos[1]+5] \gets centroid$
+        \State $\hat{D}[pos[0]:pos[0]+5, pos[1]:pos[1]+5] \gets \hat{D}[pos[0]:pos[0]+5, pos[1]:pos[1]+5] + centroid$
+        \State $Count[pos[0]:pos[0]+5, pos[1]:pos[1]+5] \gets Count[pos[0]:pos[0]+5, pos[1]:pos[1]+5]+1$
     \EndFor
-    \State \Return $\hat{D}$
+    \State $Count[Count == 0] = 1$  \Comment{Avoid division by 0}
+
+    \State \Return $\hat{D}/Count$
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
@@ -149,7 +155,7 @@ Some notations in this algorithm:
 
 \clearpage
 
-\section{Experiment Results}
+\section{Experiment Results}\label{sec:experiment}
 
 % \textbf{We don't do normalization in our experiment, which means that the pixel value is either 0 or 255.}
 
@@ -173,15 +179,7 @@ With different values of $K$, we can get different clustering results, and we he
         \centering
         \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/100-clusters-reconstruction.png}
         \caption{The patch and corresponding centroid when $K = 100$}
-        \label{fig:enter-label}
-    \end{figure}
-
-        \item $K = 200$
-    \begin{figure}[htbp!]
-        \centering
-        \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/200-clusters-reconstruction.png}
-        \caption{The patch and corresponding centroid when $K = 200$}
-        \label{fig:enter-label}
+        \label{fig:patches-100}
     \end{figure}
 
         \item $K = 400$
@@ -189,16 +187,25 @@ With different values of $K$, we can get different clustering results, and we he
         \centering
         \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/400-clusters-reconstruction.png}
         \caption{The patch and corresponding centroid when $K = 400$}
-        \label{fig:enter-label}
+        \label{fig:patches-400}
     \end{figure}
-    \clearpage
+    % \clearpage
 
         \item $K = 1000$
     \begin{figure}[htbp!]
         \centering
         \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/1000-clusters-reconstruction.png}
         \caption{The patch and corresponding centroid when $K = 1000$}
-        \label{fig:enter-label}
+        \label{fig:patches-1000}
+    \end{figure}
+    \clearpage
+
+        \item $K = 2000$
+    \begin{figure}[htbp!]
+        \centering
+        \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/2000-clusters-reconstruction.png}
+        \caption{The patch and corresponding centroid when $K = 2000$}
+        \label{fig:patches-2000}
     \end{figure}
 
             \item $K = 5000$
@@ -206,7 +213,7 @@ With different values of $K$, we can get different clustering results, and we he
         \centering
         \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/5000-clusters-reconstruction.png}
         \caption{The patch and corresponding centroid when $K = 5000$}
-        \label{fig:enter-label}
+        \label{fig:patches-5000}
     \end{figure}
 
         \item $K = 10000$
@@ -214,7 +221,7 @@ With different values of $K$, we can get different clustering results, and we he
         \centering
         \includegraphics[width = 0.9 \textwidth]{K-means/Result/Patches/10000-clusters-reconstruction.png}
         \caption{The patch and corresponding centroid when $K = 10000$}
-        \label{fig:enter-label}
+        \label{fig:patches-10000}
     \end{figure}
     
 \end{itemize}
@@ -234,7 +241,7 @@ In addition to the clustering performance, we also want to understand the meanin
 
 \begin{itemize}
 \begin{figure}[htbp!]
-\item $K = 100, 200$
+\item $K = 100, 400$
     \centering
     % First row
     \begin{minipage}{0.4\textwidth}
@@ -245,23 +252,23 @@ In addition to the clustering performance, we also want to understand the meanin
     \end{minipage}%
     \begin{minipage}{0.4\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{K-means/Result/Centroids/200-clusters-centroids.png}
-        \caption{$K = 200$}
-        \label{fig:200-centroids}
-    \end{minipage}
-\item $K = 400, 1000$    
-    % Second row
-    \begin{minipage}{0.4\textwidth}
-        \centering
         \includegraphics[width=\textwidth]{K-means/Result/Centroids/400-clusters-centroids.png}
         \caption{$K = 400$}
         \label{fig:400-centroids}
-    \end{minipage}%
+    \end{minipage}
+\item $K = 1000, 2000$    
+    % Second row
     \begin{minipage}{0.4\textwidth}
         \centering
         \includegraphics[width=\textwidth]{K-means/Result/Centroids/1000-clusters-centroids.png}
-        \caption{ $K = 1000$}
+        \caption{$K = 1000$}
         \label{fig:1000-centroids}
+    \end{minipage}%
+    \begin{minipage}{0.4\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{K-means/Result/Centroids/2000-clusters-centroids.png}
+        \caption{$K = 2000$}
+        \label{fig:2000-centroids}
     \end{minipage}
 \item $K = 5000, 10000$    
     % Third row
@@ -286,13 +293,19 @@ In addition to the clustering performance, we also want to understand the meanin
 
 As the algorithm illustrated in \textbf{2.2}, we do the reconstruction on the digit to test the performance of the K-mean clustering.
 
-First, below is the example of the reconstruction result of the hand-written digit 2:
+Figure~\ref{fig:digit-train} and~\ref{fig:digit-test} are the examples of the reconstruction results of the hand-written digits from the training set and testing set:
 
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width = \textwidth]{K-means/Result/Digits/reconstruct-digit.png}
+    \includegraphics[width = \textwidth]{K-means/Result/Digits/reconstruct-train-digit.png}
     \caption{Reconstruction of digit 2 with different $K$}
-    \label{fig:enter-label}
+    \label{fig:digit-train}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width = \textwidth]{K-means/Result/Digits/reconstruct-test-digit.png}
+    \caption{Reconstruction of digit 5 with different $K$}
+    \label{fig:digit-test}
 \end{figure}
 
 We can see that:
@@ -320,5 +333,5 @@ where \( D_{ij} \) and \( \hat{D}_{ij} \) are the elements at the \( i \)-th row
 \section{Conclusion}
 
 
-\printbibliography
+% \printbibliography
 \end{document}
