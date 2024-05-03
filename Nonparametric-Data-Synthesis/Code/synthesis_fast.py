@@ -21,10 +21,13 @@ Example:
 
 __author__ = 'Maxwell Goldberg'
 
-import argparse
+import torch
 import time
+import torch.nn.functional as F
+import argparse
 import cv2
 import numpy as np
+from multiprocessing import Pool
 
 EIGHT_CONNECTED_NEIGHBOR_KERNEL = np.array([[1., 1., 1.],
                                             [1., 0., 1.],
@@ -32,6 +35,80 @@ EIGHT_CONNECTED_NEIGHBOR_KERNEL = np.array([[1., 1., 1.],
 SIGMA_COEFF = 6.4      # The denominator for a 2D Gaussian sigma used in the reference implementation.
 ERROR_THRESHOLD = 0.1  # The default error threshold for synthesis acceptance in the reference implementation.
 
+
+
+# def normalized_ssd(sample, window, mask):
+#     if torch.backends.mps.is_available():
+#         device = torch.device("mps")
+#     elif torch.cuda.is_available():
+#         device = torch.device("cuda")
+#     else:
+#         device = torch.device("cpu")
+
+#     # Convert inputs to PyTorch tensors and move them to the specified device
+#     sample = torch.tensor(sample, dtype=torch.float32).to(device)
+#     window = torch.tensor(window, dtype=torch.float32).to(device)
+#     mask = torch.tensor(mask, dtype=torch.float32).to(device)
+
+#     # Get dimensions
+#     sh, sw = sample.shape
+#     wh, ww = window.shape
+
+#     # Compute 2D Gaussian kernel
+#     sigma = wh / SIGMA_COEFF  # SIGMA_COEFF should be defined elsewhere in your code
+#     kernel = torch.Tensor(cv2.getGaussianKernel(ksize=wh, sigma=sigma)).to(device)
+#     kernel_2d = torch.mm(kernel, kernel.t())
+
+#     # Apply the Gaussian kernel to the mask
+#     weighted_mask = mask * kernel_2d
+
+#     # Calculate padded size for valid convolution
+#     padded_sample = F.pad(sample, (ww//2, ww//2, wh//2, wh//2))
+
+#     # Perform convolution using the flipped window (correlation)
+#     window = window.flip([0, 1])
+#     ssd_map = F.conv2d(padded_sample[None, None, :, :], window[None, None, :, :], None, stride=1)
+
+#     # Compute sum of squared differences
+#     squared_diff = (ssd_map - torch.sum(window)**2)**2
+
+#     # Multiply by the weighted mask and sum over the kernel
+#     result_map = F.conv2d(squared_diff, weighted_mask[None, None, :, :], None, stride=1)
+
+#     # Normalize the SSD by the maximum possible contribution
+#     total_ssd = torch.sum(weighted_mask)
+#     normalized_ssd_map = result_map / total_ssd
+
+#     return normalized_ssd_map[0, 0].cpu().numpy()
+
+
+# def normalized_ssd(sample, window, mask):
+#     if torch.backends.mps.is_available():
+#         device = torch.device("mps")
+#     elif torch.cuda.is_available():
+#         device = torch.device("cuda")
+#     else:
+#         device = torch.device("cpu")
+#     # Ensure all inputs are float32
+#     sample, window, mask = map(lambda x: torch.tensor(x, dtype=torch.float32, device=device), (sample, window, mask))
+    
+#     # Calculate Gaussian kernel in float32, ensure vectors are 1D by flattening
+#     sigma = window.shape[0] / SIGMA_COEFF
+#     k1 = torch.tensor(cv2.getGaussianKernel(ksize=window.shape[0], sigma=sigma).flatten(), dtype=torch.float32, device=device)
+#     kernel = torch.outer(k1, k1)
+
+#     # Use unfold to create sliding windows
+#     unfolded_sample = F.unfold(sample[None, None], kernel_size=window.shape, padding=0, stride=1)
+#     unfolded_sample = unfolded_sample.view(1, window.numel(), sample.shape[0]-window.shape[0]+1, sample.shape[1]-window.shape[1]+1)
+
+#     ssd = (unfolded_sample - window.view(1, -1, 1, 1))**2
+#     ssd *= kernel.view(1, -1, 1, 1) * mask.view(1, -1, 1, 1)
+#     ssd = ssd.sum(dim=1)
+
+#     # Normalize SSD
+#     total_ssd = torch.sum(mask * kernel)
+#     normalized_ssd = ssd / total_ssd
+#     return normalized_ssd.cpu().numpy()
 
 def normalized_ssd(sample, window, mask):
     wh, ww = window.shape
@@ -73,6 +150,7 @@ def normalized_ssd(sample, window, mask):
     normalized_ssd = ssd / total_ssd
 
     return normalized_ssd
+
 
 def get_candidate_indices(normalized_ssd, error_threshold=ERROR_THRESHOLD):
     min_ssd = np.min(normalized_ssd)
@@ -179,43 +257,48 @@ def initialize_texture_synthesis(original_sample, window_size, kernel_size):
 
     return sample, window, mask, padded_window, padded_mask, result_window
     
+def process_pixel(args):
+    sample, window_slice, mask_slice, kernel_size, ch, cw, original_sample = args
+    ssd = normalized_ssd(sample, window_slice, mask_slice)
+    indices = get_candidate_indices(ssd)
+    selected_index = select_pixel_index(ssd, indices)
+    selected_index = (selected_index[0] + kernel_size // 2, selected_index[1] + kernel_size // 2)
+    return ch, cw, sample[selected_index], original_sample[selected_index[0], selected_index[1]]
+
 def synthesize_texture(original_sample, window_size, kernel_size, visualize):
     global gif_count
-    (sample, window, mask, padded_window, 
-        padded_mask, result_window) = initialize_texture_synthesis(original_sample, window_size, kernel_size)
+    (sample, window, mask, padded_window, padded_mask, result_window) = initialize_texture_synthesis(original_sample, window_size, kernel_size)
 
-    # Synthesize texture until all pixels in the window are filled.
+    pool = Pool()
+
     while texture_can_be_synthesized(mask):
-        # Get neighboring indices
         neighboring_indices = get_neighboring_pixel_indices(mask)
-
-        # Permute and sort neighboring indices by quantity of 8-connected neighbors.
         neighboring_indices = permute_neighbors(mask, neighboring_indices)
         
+        tasks = []
         for ch, cw in zip(neighboring_indices[0], neighboring_indices[1]):
-
             window_slice = padded_window[ch:ch+kernel_size, cw:cw+kernel_size]
             mask_slice = padded_mask[ch:ch+kernel_size, cw:cw+kernel_size]
+            tasks.append((sample, window_slice, mask_slice, kernel_size, ch, cw, original_sample))
+        
+        results = pool.map(process_pixel, tasks)
 
-            # Compute SSD for the current pixel neighborhood and select an index with low error.
-            ssd = normalized_ssd(sample, window_slice, mask_slice)
-            indices = get_candidate_indices(ssd)
-            selected_index = select_pixel_index(ssd, indices)
-
-            # Translate index to accommodate padding.
-            selected_index = (selected_index[0] + kernel_size // 2, selected_index[1] + kernel_size // 2)
-
-            # Set windows and mask.
-            window[ch, cw] = sample[selected_index]
+        for ch, cw, new_value, result_value in results:
+            window[ch, cw] = new_value
             mask[ch, cw] = 1
-            result_window[ch, cw] = original_sample[selected_index[0], selected_index[1]]
+            result_window[ch, cw] = result_value
 
             if visualize:
                 cv2.imshow('synthesis window', result_window)
                 key = cv2.waitKey(1) 
                 if key == 27:
                     cv2.destroyAllWindows()
+                    pool.close()
+                    pool.join()
                     return result_window
+
+    pool.close()
+    pool.join()
 
     if visualize:
         cv2.imshow('synthesis window', result_window)
@@ -265,7 +348,7 @@ def main():
                                              kernel_size=args.kernel_size, 
                                              visualize=args.visualize)
     print('Synthesis time: {:.2f} seconds'.format(time.time() - start_time))
-
+    
     if args.out_path is not None:
         cv2.imwrite(args.out_path, synthesized_texture)
 
