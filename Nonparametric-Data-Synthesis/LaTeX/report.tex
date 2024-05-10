@@ -199,8 +199,10 @@ We use the Python \texttt{multiprocessing} library to create a pool of worker pr
 With this parallelization strategy, we can achieve a significant speedup (depending on hardware, around $8\times$) in the texture synthesis process.
 
 \section{Results}
-
-Here we present the results of applying the non-parametric texture synthesis method to the textures described in the previous section.
+\subsection{Texture Synthesis}
+In this section, we present the results of applying the non-parametric texture synthesis method to the textures described in the previous section.
+The patch size is set to $11 \times 11$ for all the textures.
+The synthesized textures are shown in Figure~\ref{fig:synthesis-2} - \ref{fig:synthesis-galaxy}.
 
 \begin{figure}[htbp!]
     \centering
@@ -270,7 +272,7 @@ Here we present the results of applying the non-parametric texture synthesis met
     \hfill % this will add space between the subfigures
     \begin{subfigure}[b]{0.49\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../Result/mnist.png}
+        \includegraphics[width=\textwidth]{../Result/mnist-patch-11.png}
         \caption{Synthesized MNIST Digits}
         \label{fig:synthesized-mnist}
     \end{subfigure}
@@ -295,6 +297,41 @@ Here we present the results of applying the non-parametric texture synthesis met
     \end{subfigure}
     \caption{Synthesis of Galaxy Picture}
     \label{fig:synthesis-galaxy}
+\end{figure}
+
+\subsection{Different Neighborhood Patch Sizes}
+In this section, we present the results of applying the non-parametric texture synthesis method on MNIST with different neighborhood sizes / patch sizes.
+The results are shown in Figure~\ref{fig:mnist-diff-patch}.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../Result/mnist-patch-5.png}
+        \caption{$5 \times 5$}
+        \label{fig:mnist-patch-5}
+    \end{subfigure}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../Result/mnist-patch-7.png}
+        \caption{$7 \times 7$}
+        \label{fig:mnist-patch-7}
+    \end{subfigure}
+    \\
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../Result/mnist-patch-9.png}
+        \caption{$9 \times 9$}
+        \label{fig:mnist-patch-9}
+    \end{subfigure}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../Result/mnist-patch-15.png}
+        \caption{$15 \times 15$}
+        \label{fig:mnist-patch-15}
+    \end{subfigure}
+    \caption{Different Neighborhood Sizes for MNIST}
+    \label{fig:mnist-diff-patch}
 \end{figure}
 
 
