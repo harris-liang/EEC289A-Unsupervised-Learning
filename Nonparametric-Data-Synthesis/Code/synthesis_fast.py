@@ -20,6 +20,7 @@ Example:
 '''
 
 __author__ = 'Maxwell Goldberg'
+__author__ = 'Chenye Yang, Hanchu Zhou, Haodong Liang, Yibo Ma'
 
 import torch
 import time
